@@ -1,7 +1,40 @@
+# Entornos virtuales
 venv/
 .venv/
+env/
+ENV/
+
+# Variables de entorno / credenciales
 .env
+.env.local
+.env.*.local
+
+# Caché de Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Logs
 logs/*.log
+*.log
+
+# Base de datos local o pruebas
 data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# PyCharm / IntelliJ
+.idea/
+
+# Builds / temporales
+dist/
+build/
+*.egg-info/
