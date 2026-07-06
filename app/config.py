@@ -21,3 +21,7 @@ class Config:
 
     TASA_CAMBIO_DOLAR = float(os.getenv("TASA_CAMBIO_DOLAR", "36.62"))
     MOSTRAR_PRECIO_USD = os.getenv("MOSTRAR_PRECIO_USD", "true").lower() == "true"
+
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    USAR_GEMINI = os.getenv("USAR_GEMINI", "true").lower() == "true"

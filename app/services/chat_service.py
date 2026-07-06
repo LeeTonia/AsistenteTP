@@ -2,6 +2,11 @@ import re
 
 from app.services.productos_service import buscar_productos
 
+try:
+    from app.services.gemini_service import redactar_respuesta_productos
+except ImportError:
+    redactar_respuesta_productos = None
+
 
 PALABRAS_IGNORADAS = {
     "hola", "buenas", "buenos", "dias", "días", "tardes", "noches",
@@ -82,6 +87,18 @@ def formatear_producto(producto: dict) -> str:
     return linea
 
 
+def crear_respuesta_fallback(candidato: str, productos: list[dict]) -> str:
+    productos_formateados = "\n\n".join(
+        formatear_producto(producto)
+        for producto in productos
+    )
+
+    return (
+        f"Sí, encontré estos productos relacionados con \"{candidato}\":\n\n"
+        f"{productos_formateados}"
+    )
+
+
 def responder_chat(mensaje: str) -> dict:
     mensaje = (mensaje or "").strip()
 
@@ -97,7 +114,10 @@ def responder_chat(mensaje: str) -> dict:
         return {
             "ok": True,
             "tipo": "general",
-            "respuesta": "Puedo ayudarte a consultar productos, precios y disponibilidad. Decime qué producto estás buscando."
+            "respuesta": (
+                "Puedo ayudarte a consultar productos, precios y disponibilidad. "
+                "Decime qué producto estás buscando."
+            )
         }
 
     ultima_respuesta = None
@@ -114,20 +134,27 @@ def responder_chat(mensaje: str) -> dict:
         if resultado.get("ok") and resultado.get("total", 0) > 0:
             productos = resultado.get("productos", [])
 
-            productos_formateados = "\n\n".join(
-                formatear_producto(producto)
-                for producto in productos
-            )
+            respuesta_gemini = None
 
-            respuesta = (
-                f"Sí, encontré estos productos relacionados con \"{candidato}\":\n\n"
-                f"{productos_formateados}"
-            )
+            if redactar_respuesta_productos is not None:
+                respuesta_gemini = redactar_respuesta_productos(
+                    mensaje_cliente=mensaje,
+                    busqueda_usada=candidato,
+                    productos=productos
+                )
+
+            if respuesta_gemini:
+                respuesta = respuesta_gemini
+                gemini_usado = True
+            else:
+                respuesta = crear_respuesta_fallback(candidato, productos)
+                gemini_usado = False
 
             return {
                 "ok": True,
                 "tipo": "busqueda_producto",
                 "busqueda_usada": candidato,
+                "gemini_usado": gemini_usado,
                 "respuesta": respuesta,
                 "productos": productos
             }
@@ -136,6 +163,7 @@ def responder_chat(mensaje: str) -> dict:
         "ok": True,
         "tipo": "busqueda_producto",
         "busqueda_usada": candidatos[0],
+        "gemini_usado": False,
         "respuesta": (
             f"No encontré productos disponibles relacionados con \"{candidatos[0]}\". "
             "Podés probar con otro nombre, marca, tipo de prenda o código."
