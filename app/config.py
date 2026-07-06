@@ -18,3 +18,6 @@ class Config:
     WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
     WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
     WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+
+    TASA_CAMBIO_DOLAR = float(os.getenv("TASA_CAMBIO_DOLAR", "36.62"))
+    MOSTRAR_PRECIO_USD = os.getenv("MOSTRAR_PRECIO_USD", "true").lower() == "true"

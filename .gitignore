@@ -6,8 +6,8 @@ ENV/
 
 # Variables de entorno / credenciales
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Caché de Python
 __pycache__/
@@ -38,3 +38,8 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
