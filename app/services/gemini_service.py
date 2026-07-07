@@ -21,48 +21,56 @@ def obtener_cliente_gemini():
     return _cliente_gemini
 
 
-def preparar_productos_para_gemini(productos: list[dict]) -> list[dict]:
+def redactar_respuesta_productos(
+    mensaje_cliente: str,
+    busqueda_usada: str,
+    productos: list[dict] | None
+) -> str | None:
+    if not gemini_disponible():
+        return None
+
+    if productos is None:
+        productos = []
+
     productos_limpios = []
 
     for producto in productos[:5]:
         productos_limpios.append({
-            "codigo": producto.get("codigo"),
+            "codigo": producto.get("codigo") or producto.get("barcode"),
             "descripcion": producto.get("descripcion"),
+            "categoria": producto.get("categoria"),
             "cantidad": producto.get("cantidad"),
-            "precio_cor": producto.get("precio_cor"),
+            "unidad": producto.get("unidad"),
+            "precio_cor": producto.get("precio_cor") or producto.get("precio_cordobas"),
             "precio_usd": producto.get("precio_usd"),
-            "porcentaje_descuento": producto.get("porcentaje_descuento"),
+            "descuento": producto.get("porcentaje_descuento") or producto.get("descuento") or 0,
         })
 
-    return productos_limpios
-
-
-def redactar_respuesta_productos(mensaje_cliente: str, busqueda_usada: str, productos: list[dict]) -> str | None:
-    if not gemini_disponible():
-        return None
-
-    productos_limpios = preparar_productos_para_gemini(productos)
-
     prompt = f"""
-Cliente escribió:
-{mensaje_cliente}
+Sos el asistente virtual de WhatsApp de una tienda.
 
-Búsqueda usada en inventario:
-{busqueda_usada}
+El cliente escribió:
+"{mensaje_cliente}"
 
-Productos encontrados en la base de datos:
+La búsqueda usada fue:
+"{busqueda_usada}"
+
+Productos encontrados en el inventario real:
 {json.dumps(productos_limpios, ensure_ascii=False, indent=2)}
 
-Instrucciones:
-- Respondé en español, como asistente amable de una tienda.
-- No inventés productos, precios, descuentos ni cantidades.
-- Usá únicamente los productos dados en la lista.
-- Si hay varios productos, mostrales máximo 5 opciones.
-- Mencioná código, disponibilidad, precio en córdobas y precio en dólares si existe.
-- Si el producto parece relacionado pero no exacto, decí "encontré opciones relacionadas".
-- No digás que consultaste una base de datos.
-- No uses formato JSON.
-- La respuesta debe ser clara para WhatsApp.
+Tu trabajo:
+- Respondé de forma natural, como una persona amable atendiendo WhatsApp.
+- No sonés como plantilla.
+- No repitás siempre la misma estructura.
+- Usá frases cortas y claras.
+- Si hay productos encontrados, resumilos de forma útil.
+- Si no hay productos encontrados, decí que no encontraste ese producto exacto y sugerí preguntar por otra marca, categoría o producto parecido.
+- Podés hacer una pregunta de seguimiento si ayuda.
+- Nunca inventés productos.
+- Nunca inventés precios.
+- Nunca digás que hay existencia si no aparece en los productos encontrados.
+- No mencionés SQL, base de datos, Python ni Gemini.
+- Respondé en español natural para WhatsApp.
 """
 
     try:
@@ -72,10 +80,10 @@ Instrucciones:
             model=Config.GEMINI_MODEL,
             contents=prompt,
             config={
-                "temperature": 0.3,
+                "temperature": 0.7,
                 "system_instruction": (
                     "Sos un asistente virtual de tienda. "
-                    "Tu trabajo es redactar respuestas claras para clientes usando solo datos confirmados."
+                    "Tu trabajo es atender clientes por WhatsApp usando solo datos confirmados del inventario."
                 ),
             },
         )
@@ -85,8 +93,9 @@ Instrucciones:
         if not texto:
             return None
 
+        print("Respuesta generada con Gemini", flush=True)
         return texto
 
     except Exception as error:
-        print(f"Error usando Gemini: {error}")
+        print(f"Error usando Gemini: {error}", flush=True)
         return None

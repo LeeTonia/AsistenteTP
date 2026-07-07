@@ -1,7 +1,11 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 class Config:
@@ -14,15 +18,6 @@ class Config:
     SQL_CONNECTION_STRING = os.getenv("SQL_CONNECTION_STRING", "")
 
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-
-    WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
-    WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
-    WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
-
-    TASA_CAMBIO_DOLAR = float(os.getenv("TASA_CAMBIO_DOLAR", "36.62"))
-    MOSTRAR_PRECIO_USD = os.getenv("MOSTRAR_PRECIO_USD", "true").lower() == "true"
-
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     USAR_GEMINI = os.getenv("USAR_GEMINI", "true").lower() == "true"
 
@@ -31,4 +26,5 @@ class Config:
     WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
     WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
 
-    WHATSAPP_API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v25.0")
+    TASA_CAMBIO_DOLAR = float(os.getenv("TASA_CAMBIO_DOLAR", "36.62"))
+    MOSTRAR_PRECIO_USD = os.getenv("MOSTRAR_PRECIO_USD", "true").lower() == "true"
