@@ -5,9 +5,9 @@ from app.config import Config
 
 def obtener_conexion_sql():
     if not Config.SQL_CONNECTION_STRING:
-        raise Exception("No hay SQL_CONNECTION_STRING configurado en el .env")
+        raise Exception("No hay SQL_CONNECTION_STRING configurado en el archivo .env")
 
-    return pyodbc.connect(Config.SQL_CONNECTION_STRING)
+    return pyodbc.connect(Config.SQL_CONNECTION_STRING, timeout=10)
 
 
 def buscar_productos(texto_busqueda: str, limite: int = 5):
@@ -31,19 +31,22 @@ def buscar_productos(texto_busqueda: str, limite: int = 5):
             Descuento
         FROM dbo.APPTIENDACHOWPAIZ
         WHERE
-            Cantidad > 0
+            ISNULL(Cantidad, 0) > 0
             AND (
-                Descripcion LIKE ?
-                OR Categoria LIKE ?
-                OR Barcode LIKE ?
+                CAST(Descripcion AS NVARCHAR(255)) COLLATE Latin1_General_CI_AI LIKE ? COLLATE Latin1_General_CI_AI
+                OR CAST(Categoria AS NVARCHAR(255)) COLLATE Latin1_General_CI_AI LIKE ? COLLATE Latin1_General_CI_AI
+                OR CAST(Barcode AS NVARCHAR(255)) LIKE ?
             )
         ORDER BY Descripcion;
     """
 
-    conexion = obtener_conexion_sql()
-    cursor = conexion.cursor()
+    conexion = None
+    cursor = None
 
     try:
+        conexion = obtener_conexion_sql()
+        cursor = conexion.cursor()
+
         cursor.execute(query, termino, termino, termino)
         filas = cursor.fetchall()
 
@@ -59,25 +62,40 @@ def buscar_productos(texto_busqueda: str, limite: int = 5):
             unidad = fila[6]
             descuento = fila[7]
 
-            productos.append({
-                "categoria": categoria,
-                "descripcion": descripcion,
-                "barcode": barcode,
-                "cantidad": cantidad,
-                "precio_cordobas": precio_cordobas,
-                "precio_sin_descuento": precio_sin_descuento,
-                "unidad": unidad,
-                "descuento": descuento,
+            productos.append(
+                {
+                    "categoria": categoria,
+                    "descripcion": descripcion,
+                    "barcode": barcode,
+                    "cantidad": cantidad,
+                    "precio_cordobas": precio_cordobas,
+                    "precio_sin_descuento": precio_sin_descuento,
+                    "unidad": unidad,
+                    "descuento": descuento,
 
-                # Nombres que espera gemini_service.py
-                "codigo": barcode,
-                "precio_cor": precio_cordobas,
-                "precio_usd": None,
-                "porcentaje_descuento": descuento or 0,
-            })
+                    # Alias esperados por gemini_service.py y bot_service.py
+                    "codigo": barcode,
+                    "codigo_barra": barcode,
+                    "precio_cor": precio_cordobas,
+                    "precio_usd": None,
+                    "porcentaje_descuento": descuento or 0,
+                }
+            )
 
         return productos
 
+    except Exception as error:
+        print("ERROR REAL EN buscar_productos:", repr(error), flush=True)
+
+        return {
+            "ok": False,
+            "detalle": repr(error),
+            "productos": [],
+        }
+
     finally:
-        cursor.close()
-        conexion.close()
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
